@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# A fragment of the analog description (headphones/speakers)
+PATTERN=".................etc.. HD Audio Controller Analog Stereo"
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1"; exit 1; }; }
+need pw-dump; need wpctl; need jq
+
+get_id_by_desc_substr() {
+  local s="$1"
+  pw-dump | jq -r --arg s "$s" '
+    .[]
+    | select(.type=="PipeWire:Interface:Node")
+    | select(.info.props["media.class"]=="Audio/Sink")
+    | select((.info.props["node.description"]//"") | contains($s))
+    | .id
+  ' | head -n1
+}
+
+ID="$(get_id_by_desc_substr "$PATTERN")"
+[[ -z "${ID:-}" ]] && { notify-send "Audio" "I can't find sink Analog with: $PATTERN"; exit 1; }
+
+wpctl set-default "$ID"
+
+if command -v pactl >/dev/null 2>&1; then
+  pactl list short sink-inputs | awk '{print $1}' | xargs -r -I{} pactl move-sink-input {} "$ID" || true
+fi
+
+notify-send "Audio" "Switched to Headphones/Analog (ID $ID)"
