@@ -5,6 +5,10 @@ In PipeWire, commands like ```wpctl set-default 33``` only work until the next r
 Solution:
 We use pw-dump (which provides a JSON list of all audio nodes) + jq to identify the sink by description (name visible in wpctl status), not by ID.
 Thus, the script works even if the IDs change.
+Install ```jq```:
+```bash
+sudo apt update && sudo apt install -y jq
+```
 ## 1. Find out the descriptions of your audio outputs
 
 Run:
