@@ -32,7 +32,7 @@ Add one for HDMI → Command: ```~/.local/bin/audio-to-hdmi.sh```
 
 Add one for Analog → Command: ```~/.local/bin/audio-to-headphones.sh```
 
-Advantages over classic methods:
+### Advantages over classic methods:
 - You don't depend on volatile IDs.
 - Works even after update/reboot.
 - Automatically moves all active streams to the new output.
