@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# A snippet of the HDMI description, exactly as it appears in `wpctl status`
+PATTERN="..................................................... (HDMI)"
+
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Lipsește $1"; exit 1; }; }
+need pw-dump; need wpctl; need jq
+
+get_id_by_desc_substr() {
+  local s="$1"
+  pw-dump | jq -r --arg s "$s" '
+    .[]
+    | select(.type=="PipeWire:Interface:Node")
+    | select(.info.props["media.class"]=="Audio/Sink")
+    | select((.info.props["node.description"]//"") | contains($s))
+    | .id
+  ' | head -n1
+}
+
+ID="$(get_id_by_desc_substr "$PATTERN")"
+[[ -z "${ID:-}" ]] && { notify-send "Audio" "I can't find an HDMI sink with: $PATTERN"; exit 1; }
+
+wpctl set-default "$ID"
+
+# (optional) move all active streams to the new sink
+if command -v pactl >/dev/null 2>&1; then
+  pactl list short sink-inputs | awk '{print $1}' | xargs -r -I{} pactl move-sink-input {} "$ID" || true
+fi
+
+notify-send "Audio" "Switched to HDMI (ID $ID)"
